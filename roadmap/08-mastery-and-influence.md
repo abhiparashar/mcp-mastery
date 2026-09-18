@@ -34,16 +34,22 @@ grades it against 2026-07-28.
 | Area | Assertions |
 | --- | --- |
 | Discovery | `server/discover` implemented; `supportedVersions` non-empty; cache hints present |
-| `_meta` | Missing `protocolVersion` -> `-32602` + HTTP 400; missing declared capability -> `-32021` with `data.requiredCapabilities` |
+| `_meta` | Missing `protocolVersion` or `clientCapabilities` (both **REQUIRED**) -> `-32602` + HTTP 400; missing declared capability -> `-32021` with `data.requiredCapabilities` |
 | Versions | Unknown version -> `-32022` listing supported versions; header/body mismatch -> `-32020` + 400 |
 | Results | Every result carries `resultType`; unknown method -> 404 + `-32601` |
 | Caching | `ttlMs >= 0` and `cacheScope` on all six cacheable operations; one `cacheScope` across all pages |
 | Tools | Deterministic ordering; `inputSchema` is an object schema; names match the charset rule; `structuredContent` validates against `outputSchema` |
 | Invariance | `tools/list` identical across two fresh connections with the same credential |
-| Streaming | Progress only with `progressToken`; final response closes the stream; keep-alive comments on `subscriptions/listen` |
+| Streaming | Progress only with `progressToken` |
 | Cancellation | Work stops after stream close; nothing further sent for that id |
 | Security | Wrong-audience token -> 401; bad `Origin` -> 403; no secrets in `x-mcp-header` params |
 | MRTR | `input_required` only on the three allowed methods; retry with a new id succeeds; tampered `requestState` rejected |
+
+Two streaming behaviours stay out of the pass/fail set, because the spec does not require
+them: the final response **SHOULD** terminate the stream, and periodic SSE comment lines
+as keep-alive on a `subscriptions/listen` stream are an encouragement in a non-normative
+note. Report both as SHOULD-level observations
+([Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#receiving-messages)).
 
 Publish it, run it against popular public servers, file the failures as issues. That single
 activity has produced more protocol contributors than any tutorial.

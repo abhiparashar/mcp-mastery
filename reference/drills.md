@@ -75,11 +75,15 @@ Answer out loud, in under a minute each. If you hedge, go back to the level.
     `400` with `HeaderMismatch` (`-32020`).
 
 16. **How does cancellation work on each transport?**
-    HTTP: the client closes the response stream, which the server must treat as
-    cancellation. stdio: `notifications/cancelled`.
+    Client to server: HTTP closes the response stream, which the server must treat as
+    cancellation; stdio sends `notifications/cancelled`. Server to client, on **any**
+    transport: a server **MUST** send `notifications/cancelled` referencing a
+    `subscriptions/listen` request when it tears that stream down, and **MUST NOT** send
+    it for anything else.
 
 17. **The SSE stream dies mid-call. What does a correct client do?**
-    Re-issues the request with a **new** id. No `Last-Event-ID` resumption exists.
+    Re-issues the request; there is no `Last-Event-ID` resumption. A new id is practical
+    advice, not a spec rule - the only **MUST** for a new id is the MRTR retry.
 
 18. **Where do change notifications come from now?**
     The response stream of a `subscriptions/listen` request, tagged with
@@ -118,7 +122,11 @@ Answer out loud, in under a minute each. If you hedge, go back to the level.
 
 25. **Which MCP features are deprecated, and what replaces them?**
     Roots (pass paths as arguments/resources), Sampling (call the provider directly),
-    Logging (stderr/OTel), HTTP+SSE (Streamable HTTP), DCR (CIMD).
+    Logging (stderr/OTel), HTTP+SSE (Streamable HTTP), DCR (CIMD), and
+    `includeContext: "thisServer"` / `"allServers"` on sampling (omit it or use `"none"`).
+    Earliest removal is per feature, not a flat window: the first four in the first
+    revision released on or after 2027-07-28, HTTP+SSE three months after SEP-2596 is
+    Final.
 
 ---
 

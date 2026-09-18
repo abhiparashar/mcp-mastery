@@ -8,7 +8,7 @@ daily survival skill.
 | --- | --- |
 | `2024-11-05` | First public revision. stdio + HTTP+SSE transport (two endpoints). `initialize` handshake. |
 | `2025-03-26` | **Streamable HTTP** introduced, replacing HTTP+SSE. Sessions via `Mcp-Session-Id`. |
-| `2025-06-18` | `MCP-Protocol-Version` header introduced. Elicitation added. Structured tool output. |
+| `2025-06-18` | JSON-RPC **batching removed**. `MCP-Protocol-Version` header introduced. Elicitation added. Structured tool output. |
 | `2025-11-25` | Tasks (experimental, in core). URL-mode elicitation with `elicitationId`. |
 | `2026-07-28` | **Breaking:** stateless core, no handshake, no sessions, `server/discover`, MRTR, `subscriptions/listen`, required cache hints, Tasks moved to an extension. |
 
@@ -34,6 +34,7 @@ Sources: each revision's changelog under
 | Resource not found `-32002` | `-32602` | Change emission; still accept `-32002` as a client |
 | Tasks in core (`tasks/result` blocking, `tasks/list`) | `io.modelcontextprotocol/tasks` extension (`tasks/get` polling, `tasks/update`) | Negotiate via `extensions`; drop `tasks/list` |
 | Roots / Sampling / Logging features | deprecated | Pass paths as arguments; call the LLM API directly; use stderr/OTel |
+| `includeContext: "thisServer"` / `"allServers"` on sampling | deprecated | Omit the field or use `"none"`; removal follows Sampling |
 | Dynamic Client Registration | deprecated | Move to Client ID Metadata Documents |
 | HTTP+SSE transport | deprecated | Streamable HTTP |
 | `notifications/elicitation/complete`, `elicitationId` | removed | Learn outcome by retrying; correlate inside `requestState` |
@@ -53,8 +54,10 @@ Decide deliberately, then write it in your README: "this server speaks 2026-07-2
    `2025-03-26` if you choose to support that era, otherwise reject.
 4. On stdio, answer `server/discover` for modern clients and keep an `initialize` handler
    for legacy ones.
-5. Emit era-correct errors: modern servers must not emit `-32002`; legacy paths must not
-   emit `-32020..-32022` to clients that predate them.
+5. Emit era-correct errors: a 2026-07-28 implementation **MUST NOT** emit `-32002`
+   (resource not found, replaced by `-32602`) or `-32042` (URL elicitation required,
+   2025-11-25 only); legacy paths must not emit `-32020..-32022` to clients that predate
+   them.
 6. Emit cache hints always - harmless to older clients that ignore them.
 7. Never send server-initiated requests to a modern client, and never send MRTR results to
    a legacy client.

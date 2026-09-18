@@ -34,7 +34,9 @@ version, client capabilities, client/server identity, log level, progress token 
 context.
 
 **`resultType`** - required field on every result: `"complete"` for a final answer,
-`"input_required"` for an MRTR interim result.
+`"input_required"` for an MRTR interim result. The set is not closed - extensions **MAY**
+add values, and a client accepts those from extensions it advertised (the Tasks extension
+defines `"task"`). Any value the client does not recognise is invalid.
 
 **MRTR (Multi Round-Trip Requests)** - the pattern replacing server-initiated requests. The
 server returns `input_required` with `inputRequests`; the client gathers the input and
@@ -77,7 +79,9 @@ asked for it.
 `notifications/progress` for that request.
 
 **Cancellation** - stopping in-flight work. On Streamable HTTP, closing the response stream
-is the signal; on stdio it is `notifications/cancelled`.
+is the signal; on stdio it is `notifications/cancelled`. A server **MUST** send
+`notifications/cancelled` referencing a `subscriptions/listen` request when it tears that
+subscription stream down, and **MUST NOT** send it for any other purpose.
 
 **Pagination cursor** - an opaque token returned as `nextCursor` and passed back as
 `cursor`. Clients must never parse it.
@@ -99,7 +103,8 @@ reasons. Different from a JSON-RPC error, which means the request itself was inv
 into an `Mcp-Param-{Name}` HTTP header so intermediaries can route without reading the body.
 
 **Extension** - optional protocol functionality negotiated through the `extensions` field of
-capabilities. Official ones include Tasks, MCP Apps and the auth extensions.
+capabilities. Official ones include Tasks, MCP Apps, Skills over MCP (SEP-2640, Final) and
+the auth extensions.
 
 **Tasks extension** - `io.modelcontextprotocol/tasks`: long-running work with `tasks/get`
 polling and `tasks/update` for client input.

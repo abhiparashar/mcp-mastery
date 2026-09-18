@@ -14,7 +14,8 @@ page. Keep this open while building.
 | Error response | same `id` (unless unreadable), `error.code` (integer), `error.message` | - |
 | Notification | `jsonrpc`, `method` | `id`, any response |
 
-`resultType`: `"complete"` \| `"input_required"` \| extension value you advertised.
+`resultType`: `"complete"` \| `"input_required"` \| values from extensions you advertised
+(Tasks: `"task"`).
 Absent (older servers) -> treat as `"complete"`. Unknown -> invalid.
 
 ## Required `_meta` on every client request
@@ -65,7 +66,7 @@ Retired: `-32002` (old resource-not-found; still *accept* from old servers), `-3
 | `subscriptions/listen` | one long-lived POST stream for opted-in change notifications |
 | `notifications/progress` | request-scoped, needs `progressToken` |
 | `notifications/message` | request-scoped, needs `logLevel` |
-| `notifications/cancelled` | **stdio only** |
+| `notifications/cancelled` | client -> server cancel on **stdio** only; servers **MUST** send it referencing a `subscriptions/listen` request to tear that stream down (any transport) and **MUST NOT** send it otherwise |
 | `notifications/tools/list_changed`, `.../prompts/list_changed`, `.../resources/list_changed`, `.../resources/updated` | delivered on the listen stream |
 
 Gone in this revision: `initialize`, `notifications/initialized`, `ping`,
@@ -123,8 +124,8 @@ if invalid); bind localhost when local.
 
 ## Tools
 
-- Names: 1-128 chars, `A-Za-z0-9_-.`, case-sensitive, unique per server; aggregators must
-  namespace; `serverInfo.name` is not unique.
+- Names: **SHOULD** be 1-128 chars, `A-Za-z0-9_-.`, case-sensitive, unique per server;
+  aggregators **SHOULD** namespace; `serverInfo.name` is not unique.
 - `inputSchema` MUST be an object schema; no params -> `{"type":"object","additionalProperties":false}`.
 - `outputSchema` optional; if present, `structuredContent` MUST conform, and mirror JSON in
   a text block for old clients.
@@ -165,10 +166,13 @@ ranges). Bound depth/subschema count/time (DoS). Reject schemas with unresolved 
 | Credentials keyed by issuer, re-register on AS change | MUST |
 | stdio uses environment credentials, not this flow | SHOULD NOT use OAuth |
 
-## Deprecated (12-month minimum window)
+## Deprecated
 
 Roots, Sampling, Logging, HTTP+SSE transport, Dynamic Client Registration,
 `includeContext: "thisServer"` / `"allServers"`.
+The policy floor is a twelve-month window, but earliest removal is per feature: Roots,
+Sampling, Logging and DCR in the first revision released on or after 2027-07-28; HTTP+SSE
+three months after SEP-2596 reaches Final; `includeContext` values follow Sampling.
 Registry: https://modelcontextprotocol.io/specification/2026-07-28/deprecated
 
 ## Spec links

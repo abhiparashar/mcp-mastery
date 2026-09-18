@@ -17,11 +17,26 @@ The client launches your server as a subprocess and talks over stdin/stdout.
   `console.log` corrupts the stream - the classic first-day bug.
 - The process is not a session. Unrelated requests may be interleaved on it, and clients
   **SHOULD NOT** tie process lifetime to a conversation.
-- `notifications/cancelled` is used **only** on stdio (on HTTP, closing the stream is the
-  cancel signal).
+- `notifications/cancelled` goes both ways, and only stdio uses it for client-initiated
+  cancellation: on stdio the client **MUST** send it with the request id, while on HTTP
+  closing the stream is the cancel signal. In the other direction, on **any** transport, a
+  server **MUST** send `notifications/cancelled` referencing a `subscriptions/listen`
+  request id when it tears that subscription stream down, and **MUST NOT** send it for any
+  other purpose. See
+  [Cancellation](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation).
 - Backwards compatibility: a client that supports both modern and legacy servers **SHOULD**
   send `server/discover` first, because stdio has no HTTP status code to drive fallback.
-  Failure means "probably a pre-2026-07-28 server; try `initialize`".
+  The probe has three outcomes:
+  - A `DiscoverResult` comes back: the server is modern. Pick a mutually supported version
+    from `supportedVersions` and continue.
+  - A recognised modern JSON-RPC error comes back, such as `UnsupportedProtocolVersion`
+    (`-32022`): the server is modern but does not support the version you asked for. Retry
+    with one of the versions in its `supported` list. The client **MUST NOT** fall back to
+    `initialize` here.
+  - Any other error, or no response within a reasonable timeout: the server is legacy, so
+    fall back to `initialize`. The fallback **MUST NOT** be keyed to one specific error
+    code - legacy servers answer unknown pre-`initialize` requests with whatever they like
+    (often `-32601` or `-32602`), or not at all.
 - Credentials come from the **environment**, not from the OAuth flow. Do not implement the
   authorization spec on stdio.
 
@@ -52,8 +67,12 @@ One endpoint, POST only. This is the transport that changed most.
    request (`notifications/progress`, `notifications/message`) and then the final response,
    which **SHOULD** close the stream. The server **MUST NOT** send independent JSON-RPC
    requests on it.
-8. `Last-Event-ID` resumability is **gone**. If a stream breaks, the in-flight request is
-   lost; the client **MUST** re-issue it as a new request with a **new id**.
+8. `Last-Event-ID` resumability is **gone**. Streams are not resumable: if a stream breaks,
+   the in-flight request is lost and the client has to send it again. Giving the retry a
+   new id is practical advice, not a rule - it keeps correlation unambiguous if a late
+   response to the old id ever lands. The one place the spec does require a new id is the
+   [MRTR](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr)
+   retry, where the retried request's JSON-RPC id **MUST** differ from the original.
 
 ### Headers
 

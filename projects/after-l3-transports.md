@@ -59,7 +59,10 @@ abandoned.
 
 1. A tool that takes 20-60 seconds of real work in chunks.
 2. Emits `notifications/progress` **only** when the request carried a `progressToken`, with
-   `progress`, `total`, and a human-readable `message`.
+   `progress`, `total` and a human-readable `message`. Per
+   [Progress](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/progress),
+   `progress` **MUST** increase with each notification, even when the total is unknown;
+   `total` and `message` are optional, and `progress` and `total` **MAY** be floating point.
 3. The final response terminates the SSE stream.
 4. Cancellation: on HTTP, a closed response stream stops the work; on stdio,
    `notifications/cancelled` does. One shared abort path, wired into every downstream call.
@@ -71,6 +74,8 @@ abandoned.
 
 - Log file shows zero downstream activity after an abort, in both transports.
 - Client abort at 1 s consistently kills work within ~100 ms.
+- Captured progress notifications are strictly increasing in `progress`, with no repeats
+  and no resets, including the run where `total` is unknown.
 - Progress messages are readable by a human ("processed 1200/5000 files"), not raw counters.
 
 **Stretch.** Add a per-principal cap on concurrent streams and prove the 4th concurrent

@@ -45,9 +45,13 @@ them as an engineering lever:
   that never opened a `subscriptions/listen` stream. Never assume a listener exists.
 - Deterministic tool ordering. Byte-stable list payloads mean prompt-cache hits, which is
   real money at scale.
-- Because the standard headers (`Mcp-Method`, `Mcp-Name`, `Mcp-Param-*`) are on the
-  request, an edge cache or WAF can make decisions without parsing bodies. Design your
-  header usage with that in mind.
+- `Mcp-Method` and `Mcp-Name` are the standard request headers, **REQUIRED** for
+  compliance (`Mcp-Name` on `tools/call`, `resources/read`, `prompts/get`), so an edge
+  cache or WAF can route on them without parsing bodies. `Mcp-Param-{Name}` headers are
+  not on arbitrary requests: they come from `x-mcp-header` annotations on tool
+  parameters, and are omitted when the call carries no value at that path. Never make one
+  a routing precondition. See
+  [Streamable HTTP request metadata](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#request-metadata).
 
 ---
 

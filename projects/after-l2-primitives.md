@@ -132,7 +132,11 @@ damage or drain it.
 5. Audit log per call: principal, tool, arguments (redacted), rows returned, duration.
 6. `structuredContent` with an `outputSchema` for `run_query` (columns + rows + truncated
    flag).
-7. Cache hints: `public` on `list_tables`/templates, `private` on anything user-scoped.
+7. [Cache hints](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching)
+   on every cacheable operation you expose: `tools/list`, `resources/list`,
+   `resources/templates/list` and `resources/read`. `public` on the tool list and the
+   schema templates, `private` on any read whose content depends on the caller.
+   `tools/call` results are not cacheable, so `run_query` returns no hints.
 8. A written threat-model table (see [L5](../roadmap/05-auth-and-security.md#4-threat-model-template-use-this-do-not-improvise)).
 
 **Acceptance**

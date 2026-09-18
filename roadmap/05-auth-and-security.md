@@ -36,7 +36,7 @@ sequenceDiagram
     M-->>C: PRM (RFC 9728): authorization_servers, scopes_supported
     C->>A: AS metadata (RFC 8414 or OIDC Discovery)
     A-->>C: endpoints, issuer, iss support flag
-    Note over C: register (CIMD / pre-registered / DCR)<br/>PKCE + resource param + recorded issuer
+    Note over C: register (pre-registered / CIMD / DCR)<br/>PKCE + resource param + recorded issuer
     C->>A: authorize (code_challenge, resource, scope)
     A-->>C: code + iss
     Note over C: validate iss against recorded issuer (RFC 9207)
@@ -58,10 +58,25 @@ sequenceDiagram
 | Bearer token in the `Authorization` header on **every** request; never in the query string | **MUST** |
 | Clients never send tokens not issued by that server's AS | **MUST** |
 | Invalid/expired token -> `401` | **MUST** |
+| Valid token, insufficient scope at runtime -> `403` + `error="insufficient_scope"` | **SHOULD** |
 | Client ID Metadata Documents (CIMD) supported by clients and ASes | **SHOULD** |
 | Dynamic Client Registration (RFC 7591) | **MAY**, and **deprecated** |
 | AS includes `iss` in authorization responses (RFC 9207); clients validate it | **SHOULD** / **MUST** when present |
 | Server advertises required scopes via `scope` in `WWW-Authenticate` | **SHOULD** |
+
+### Discovery and PKCE
+
+- AS metadata discovery probes several well-known endpoints in a **fixed priority order**
+  (OAuth 2.0 metadata first, then the OIDC variants), and the `issuer` in the fetched
+  document **MUST** be identical to the issuer used to build the URL - if it differs the
+  client **MUST NOT** use that document. See
+  [Authorization server discovery](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/authorization-server-discovery).
+- PRM discovery has two mandatory routes: the `resource_metadata` pointer in
+  `WWW-Authenticate` when present, otherwise well-known-URI probing - and clients **MUST**
+  support both. Same source.
+- Clients **MUST** verify PKCE support via `code_challenge_methods_supported` in AS
+  metadata, **MUST** use `S256`, and **MUST** refuse to proceed if that field is absent.
+  See [Authorization code protection](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#authorization-code-protection).
 
 ### The canonical resource URI
 
@@ -88,23 +103,41 @@ act on or display `error_description`.
 
 ### Scopes
 
-- Read `scope` from the `401` challenge and treat it as authoritative for that operation.
+- No token, or an invalid or expired token: the server returns `401` with
+  `WWW-Authenticate: Bearer resource_metadata="...", scope="..."`.
+- Valid token but insufficient scope at runtime is a **different** error: the server
+  **SHOULD** return `403` with
+  `WWW-Authenticate: Bearer error="insufficient_scope", scope="...", resource_metadata="..."`.
+- Clients **MUST** treat the `scope` in either challenge as authoritative for that
+  operation, and **MUST NOT** assume it is a subset or superset of `scopes_supported`.
 - Otherwise fall back to `scopes_supported` from PRM.
 - `scopes_supported` should be the **minimal** set for basic functionality; escalate with
   step-up authorization when an operation needs more.
-- When re-authorizing, include previously granted scopes so you do not silently lose
-  access elsewhere.
+- Step-up: on `insufficient_scope` a client acting for a user **SHOULD** re-authorize with
+  the **union** of the scopes it previously requested and the scopes from the challenge, so
+  you do not silently lose access elsewhere. Bound the retries, then fail permanently.
+
+Source: [Scope challenge handling](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#scope-challenge-handling).
 
 ### Client registration, in priority order
 
-1. **CIMD** - the client's `client_id` is an HTTPS URL serving its metadata document. No
+1. **Pre-registered** client information, when the client already has it for that server -
+   the enterprise norm.
+2. **CIMD** - the client's `client_id` is an HTTPS URL serving its metadata document. Use
+   it when the AS advertises `client_id_metadata_document_supported` in its metadata. No
    registration call, no per-AS state. This is the direction the ecosystem is moving.
-2. **Pre-registered** client id - enterprise norm.
-3. **DCR** - deprecated, keep only for ASes without CIMD. Clients **MUST** specify an
-   appropriate `application_type` to dodge OIDC redirect-URI conflicts.
+3. **DCR** - fallback when the AS advertises a `registration_endpoint`. Deprecated. Clients
+   **MUST** specify an appropriate `application_type` to dodge OIDC redirect-URI conflicts.
+4. **Prompt the user** for client information when no other option is available.
 
-Credentials are bound to the issuer that minted them: key persisted credentials **by
-issuer**, never reuse them with a different AS, and re-register when the AS changes.
+Clients that support all the options **SHOULD** follow exactly that order.
+
+Pre-registered credentials, and credentials obtained via DCR, are bound to the issuer that
+minted them: key them **by issuer**, never reuse them with a different AS, and re-register
+when the AS changes. CIMD is the exception - a CIMD `client_id` is a self-hosted HTTPS URL,
+portable across authorization servers, and needs no re-registration.
+
+Source: [Client registration](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration).
 
 ---
 
@@ -135,6 +168,11 @@ Accepting a token that was not issued for you, or forwarding a client's token to
 downstream API, is an anti-pattern. It breaks audience validation, hides the real caller,
 and turns your server into a confused proxy. Do this instead: validate audience, then get
 your own downstream credential (service identity or token exchange).
+
+This is normative, not taste: an MCP server **MUST** reject tokens that are not audienced
+to it, and **MUST NOT** pass the token it received from the client through to an upstream
+API - the upstream token is a separate token from the upstream AS. See
+[Access token privilege restriction](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#access-token-privilege-restriction).
 
 Source: [Security best practices](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices).
 

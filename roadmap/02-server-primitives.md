@@ -61,14 +61,17 @@ probably modelled it wrong. Read
   input, not connection state.
 - Servers **SHOULD** return tools in a **deterministic order**. Stable order = client cache
   hits and LLM prompt-cache hits.
-- `inputSchema` **MUST** be a valid JSON Schema object, never `null`. No parameters means
-  `{ "type": "object", "additionalProperties": false }`.
+- `inputSchema` **MUST** be a valid JSON Schema object, never `null`. For a tool with no
+  parameters the **recommended** form is `{ "type": "object", "additionalProperties":
+  false }`, which accepts only the empty object; a bare `{ "type": "object" }` is also
+  valid and accepts any object.
 - If you publish `outputSchema`, your `structuredContent` **MUST** conform; clients
   **SHOULD** validate it.
-- Tool names: 1-128 chars, `A-Z a-z 0-9 _ - .`, case-sensitive, unique per server. Names
-  are only unique *within* a server, so aggregators/proxies **SHOULD** namespace
-  (`github.search`), and **MUST NOT** rely on `serverInfo.name` for that, since it is not
-  unique.
+- Tool names: the naming rules are all **SHOULD**-level, not hard constraints - 1-128
+  chars, only `A-Z a-z 0-9 _ - .`, case-sensitive, unique within a server. Follow them
+  anyway; hosts, gateways and tool-selection prompts assume them. Names are only unique
+  *within* a server, so aggregators/proxies **SHOULD** namespace (`github.search`), and
+  **SHOULD NOT** rely on `serverInfo.name` for that, since it is not guaranteed unique.
 - `annotations` are **untrusted** unless the server is trusted. Never let an annotation
   drive a security decision.
 

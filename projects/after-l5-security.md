@@ -28,10 +28,15 @@ Concepts required: [L5 Auth and security](../roadmap/05-auth-and-security.md).
 5. Client side (extend S06): PRM discovery, AS metadata via RFC 8414 **and** OIDC discovery,
    PKCE, `resource` parameter on authorize **and** token requests, recorded issuer plus full
    four-case `iss` validation, refresh handling.
-6. Client registration via Client ID Metadata Documents; DCR only as a documented fallback,
-   noted as deprecated. Persisted client credentials keyed by issuer.
-7. Step-up authorization: an operation needing an extra scope returns `401` with that scope,
-   and the client re-authorizes including previously granted scopes.
+6. Client registration in priority order: pre-registered client information when the client
+   has it; then Client ID Metadata Documents when the AS advertises
+   `client_id_metadata_document_supported`; then DCR as a documented fallback, noted as
+   deprecated; then prompting the user. Persisted pre-registered and DCR credentials keyed
+   by issuer; CIMD client IDs are portable across ASes and need no re-registration.
+7. Step-up authorization: an operation whose token lacks a scope returns `403` with
+   `WWW-Authenticate: Bearer error="insufficient_scope", scope="...",
+   resource_metadata="..."`, and the client re-authorizes with the union of previously
+   granted scopes and the challenged scopes.
 8. Never log tokens. Never accept a token in a query string. `Authorization` header on
    every request.
 
@@ -39,8 +44,8 @@ Concepts required: [L5 Auth and security](../roadmap/05-auth-and-security.md).
 
 - Full flow works end to end from a cold client, with frames and redirects captured.
 - Test suite proves: wrong audience `401`; expired token `401`; missing scope hidden tool
-  and `401`/error on direct call; `iss` mismatch aborts before code redemption; all four
-  `iss` cases covered.
+  and `403` with `error="insufficient_scope"` on direct call; `iss` mismatch aborts before
+  code redemption; all four `iss` cases covered.
 - A written scope table: scope -> tools/resources it unlocks -> why it is minimal.
 
 **Stretch.** Add the [OAuth client credentials extension](https://modelcontextprotocol.io/extensions/auth/oauth-client-credentials)

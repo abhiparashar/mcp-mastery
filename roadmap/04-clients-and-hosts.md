@@ -43,7 +43,10 @@ Checklist - every line is a real requirement or a real production need:
    get if you opened `subscriptions/listen` and opted in.
 8. Never reuse an outstanding JSON-RPC id; use a **new** id when re-issuing after a broken
    stream.
-9. Reject tool definitions with invalid `x-mcp-header` values (exclude that tool, log why).
+9. Clients on Streamable HTTP **MUST** reject tool definitions with invalid
+   `x-mcp-header` values: exclude that tool from `tools/list`, and log why. Clients on
+   other transports, including stdio, **MAY** ignore `x-mcp-header` annotations entirely
+   ([`x-mcp-header`](https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header)).
 10. Treat tool `annotations`, `serverInfo`, and descriptions as **untrusted content**.
 11. Keep a human in the loop for tool invocation, and show which tools are exposed.
 12. Validate `structuredContent` against `outputSchema` when present.
@@ -101,6 +104,8 @@ The client gathers the input and **retries the original request** with a **new i
   `elicitation/create` to a client without `elicitation`).
 - Every `InputRequiredResult` **MUST** contain at least one of `inputRequests` or
   `requestState`.
+- If an `InputRequiredResult` carries only `requestState` and no `inputRequests`, the
+  client **MAY** retry the original request immediately without gathering anything.
 - Client **MUST** echo `requestState` byte-for-byte, **MUST NOT** inspect or modify it, and
   **MUST NOT** invent one if the server did not send one.
 - The retry **MUST** use a different JSON-RPC id: these are independent requests.
@@ -122,8 +127,9 @@ replay, servers **SHOULD** embed and verify:
 - an identifier of the originating request - method name plus a digest of salient params
   (reject if it does not match).
 
-Those bound cross-user and cross-request reuse but do not guarantee single use. If a state
-must be consumed once (a one-time redemption), enforce that server-side.
+Those bound cross-user and cross-request reuse but do not guarantee single use. Servers
+for which a given `requestState` must be consumed at most once (a one-time redemption)
+**MUST** enforce that invariant server-side.
 
 Source: [Multi Round-Trip Requests](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr).
 
@@ -141,6 +147,12 @@ the client.
 | **Sampling** | **Deprecated** (still functional during the window) | New code should call the LLM provider directly instead of asking the client to sample |
 | **Roots** | **Deprecated** | Pass directories/files as tool parameters, resource URIs, or server config |
 | **Logging feature** | **Deprecated** | stderr on stdio, OpenTelemetry remotely |
+
+Mode choice is not only UX. Servers **MUST NOT** use form mode to request sensitive
+credentials - passwords, API keys, access tokens, payment credentials - and **MUST** use
+URL mode for those, because URL-mode data never passes through the client.
+
+Source: [Elicitation](https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation).
 
 Also gone in this revision: `notifications/elicitation/complete` and the `elicitationId`
 field of URL-mode elicitation. Under MRTR the client learns the outcome by **retrying**;

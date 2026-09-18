@@ -16,6 +16,11 @@ and what belongs in your own product - is senior judgement.
 - Extensions may define new `_meta` keys (official ones under `io.modelcontextprotocol/`,
   third-party under your own vendor prefix) and new `resultType` values - but a client may
   only accept `resultType` values from the core plus extensions it advertised.
+- If one party supports an extension and the other does not, the supporting party
+  **MUST** either revert to core protocol behaviour or reject the request with an
+  appropriate error, per
+  [extension negotiation](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning#extension-negotiation).
+  Extensions **SHOULD** document their expected fallback behaviour.
 - Read: [Extensions overview](https://modelcontextprotocol.io/extensions/overview) and the
   [client support matrix](https://modelcontextprotocol.io/extensions/client-matrix). The
   matrix is the difference between "spec-supported" and "actually usable today".
@@ -34,7 +39,18 @@ the design changed:
 - Polling with `tasks/get` replaced the blocking `tasks/result`.
 - New `tasks/update` carries client-to-server input during a running task.
 - `tasks/list` was removed.
-- Servers **may return task handles unsolicited** - no per-request opt-in.
+- Tasks are **server-directed but client-opted-in**. The client declares
+  `io.modelcontextprotocol/tasks` inside `io.modelcontextprotocol/clientCapabilities` in
+  every request's `_meta`; the server then decides per request whether to return a task,
+  and never returns one to a client that did not declare support. What went away is the
+  per-tool warmup and the per-request flag, not capability negotiation.
+- `tasks/cancel` asks the server to stop. Cancellation is cooperative: the server
+  acknowledges the intent, and the task may still reach a non-`cancelled` terminal status.
+- A task response is a `CreateTaskResult`, identified by `resultType: "task"`, carrying
+  `taskId`, initial status, `ttlMs` and `pollIntervalMs`. The task is durably created
+  before the response is sent.
+- Servers **MAY** push `notifications/tasks` carrying the full task state; clients opt
+  into them through `subscriptions/listen`. Polling is still the default.
 
 Read [Tasks](https://modelcontextprotocol.io/extensions/tasks/overview) and the
 [2026-07-28 changelog entry](https://modelcontextprotocol.io/specification/2026-07-28/changelog).
@@ -93,8 +109,10 @@ Skills that keep you ahead rather than catching up:
    material available anywhere.
 3. **Watch the deprecation registry.**
    [Deprecated features](https://modelcontextprotocol.io/specification/2026-07-28/deprecated)
-   plus the 12-month window tells you what to stop building on today: Roots, Sampling,
-   Logging, HTTP+SSE, DCR.
+   plus each feature's earliest removal tells you what to stop building on today. Roots,
+   Sampling, Logging and DCR become removable in the first revision released on or after
+   2027-07-28; HTTP+SSE three months after SEP-2596 reaches Final; and
+   `includeContext: "thisServer"` / `"allServers"` follows Sampling.
 4. **Read the schema, not the prose.**
    [`schema.ts`](https://github.com/modelcontextprotocol/specification/blob/main/schema/2026-07-28/schema.ts)
    is the source of truth; the JSON Schema is generated from it.

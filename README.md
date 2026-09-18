@@ -104,6 +104,8 @@ mcp-mastery/
     glossary.md                    plain-word definitions
     anti-patterns.md               the mistakes that mark someone as junior
     drills.md                      interview questions, design prompts, review rubric
+  builds/                       the implementations, one directory per project
+    s04-bare-metal/             S04: zero-dependency 2026-07-28 stdio server + caller + 19 conformance probes
 ```
 
 ## Ground rules for accuracy

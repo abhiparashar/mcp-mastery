@@ -1,0 +1,11 @@
+{
+  "name": "s04-bare-metal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP 2026-07-28 stdio server and caller with zero dependencies (project S04)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "demo": "node caller.js",
+    "test": "node --test ."
+  }
+}

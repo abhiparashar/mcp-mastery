@@ -48,6 +48,9 @@ again be confused about what the SDK is doing.
 **Mastery marker.** You can explain, without notes, why `stdout` purity matters and why a
 stdio process is not a session.
 
+**Reference solution:** [`builds/s04-bare-metal/`](../builds/s04-bare-metal/) - assistant-written
+server, caller, and 19 conformance probes. Read it *after* your own attempt, not before.
+
 ---
 
 ### S06 — Tiny Client CLI

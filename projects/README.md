@@ -4,6 +4,11 @@ Projects are grouped by **the level that unlocks them**, so you always build imm
 after learning the concept. Size is a badge, not a grouping: `[S]` small (half a day to two
 days), `[M]` medium (one to two weeks), `[L]` large capstone (three to six weeks).
 
+Want to build first and learn the internals after? Use the
+[top-down track](./top-down-track.md) instead of the table below. It points back here.
+For big LiteLLM + MCP systems with production failure drills, see the
+[production track](./production-track.md).
+
 ## Order of play
 
 | Build after | File | Projects |

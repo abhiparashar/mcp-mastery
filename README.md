@@ -51,6 +51,16 @@ The roadmap is built to move you across every row of that table.
 5. Keep [`reference/`](./reference) open while building. The cheatsheet is the fastest way
    to answer "what is the exact rule here".
 
+**Prefer building first?** Follow the [top-down track](./projects/top-down-track.md):
+ship working servers with the SDK inside a real host, then dig into each layer after.
+It covers the same levels and projects, in reverse order. Then move to the
+[production track](./projects/production-track.md): big LiteLLM + MCP systems with
+failure drills.
+
+**Confused about function calling vs tool calling vs MCP?** Read
+[`reference/function-calling-vs-mcp.md`](./reference/function-calling-vs-mcp.md) before
+anything else.
+
 ### The learning loop that actually works
 
 ```mermaid
@@ -90,6 +100,8 @@ mcp-mastery/
     08-mastery-and-influence.md  schema fluency, conformance suites, SEPs, teaching
   projects/                     specs grouped by the level that unlocks them
     README.md                   index: level -> projects, and definition of done
+    top-down-track.md           build-first path: T1-T15, small -> medium -> big
+    production-track.md         P1-P6: LiteLLM + tokens + sessions + MCP, production drills
     after-l1-foundations.md     S04 bare-metal JSON-RPC, S06 tiny client CLI
     after-l2-primitives.md      S01 hello tools, S02 resources, S03 prompts, M01 DB gateway
     after-l3-transports.md      S05 HTTP deploy, S07 progress/cancel, S08 subscriptions
@@ -104,6 +116,7 @@ mcp-mastery/
     glossary.md                    plain-word definitions
     anti-patterns.md               the mistakes that mark someone as junior
     drills.md                      interview questions, design prompts, review rubric
+    function-calling-vs-mcp.md     tool calling vs MCP, and the three meanings of token/session
   builds/                       the implementations, one directory per project
     s04-bare-metal/             S04: zero-dependency 2026-07-28 stdio server + caller + 19 conformance probes
 ```

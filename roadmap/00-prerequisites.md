@@ -104,6 +104,9 @@ Before MCP, tool calling was: you send the model a list of function schemas, it 
 MCP does not change that loop. It standardises **where the list comes from** and **who
 runs the call**. That is the entire value proposition.
 
+Full comparison with real frames from OpenAI, Anthropic and MCP, plus the three meanings
+of "token" and "session": [`reference/function-calling-vs-mcp.md`](../reference/function-calling-vs-mcp.md).
+
 Three roles, learn the words:
 
 | Role | What it is | Example |

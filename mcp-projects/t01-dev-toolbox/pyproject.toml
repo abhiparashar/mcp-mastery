@@ -1,0 +1,7 @@
+[project]
+name = "t01-dev-toolbox"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=2.2,<3",
+]

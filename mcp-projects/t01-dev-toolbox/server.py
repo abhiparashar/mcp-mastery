@@ -1,6 +1,6 @@
 from datetime import datetime
 import json
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 import uuid
 from typing import Annotated
 from pydantic import Field
@@ -12,10 +12,16 @@ server = MCPServer("dev-toolbox", version="0.1.0")
 @server.tool()
 def convert_timestamp(timestamp:int, timezone:str) -> str:
   """
-  convert a unix timestamp (seconds) to readable date and time
+  Convert a Unix timestamp to a readable date and time. Seconds or milliseconds (13 digits) both work.
   timezone must be an IANA name, for example "Asia/Kolkata" or "UTC".
   """
-  moment = datetime.fromtimestamp(timestamp, tz=ZoneInfo(timezone))
+  if timestamp >= 100_000_000_000:
+    timestamp = timestamp / 1000
+  try:
+    zone = ZoneInfo(timezone)
+  except(ZoneInfoNotFoundError, ValueError):
+    raise ToolError(f'Unknown timezone "{timezone}". Use an IANA name like "Asia/Kolkata" or "UTC".')
+  moment = datetime.fromtimestamp(timestamp, tz=zone)
   return moment.strftime("%Y-%m-%d %H:%M:%S %Z")
 
 @server.tool()

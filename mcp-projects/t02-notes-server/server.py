@@ -1,11 +1,14 @@
 from mcp.server.mcpserver import MCPServer
 from pathlib import Path
+from mcp.server.mcpserver.resources import FileResource
 from mcp.server.mcpserver.exceptions import ToolError
 
 server = MCPServer(name="notes-server")
 
 NOTES_DIR = Path(__file__).parent/ "notes"
 NOTES_DIR.mkdir(exist_ok=True)
+for path in NOTES_DIR.glob("*.md"):
+  server.add_resource(FileResource(uri=f"note://{path.stem}", name=path.stem, path=path, mime_type="text/markdown"))
 
 @server.tool()
 def create_note(title:str, text:str) -> str:

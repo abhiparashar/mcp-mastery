@@ -17,7 +17,21 @@ def create_note(title:str, text:str) -> str:
   if path.parent != NOTES_DIR.resolve():
     raise ToolError("Title must be a plain name, without / or ..")
   path.write_text(text)
+  server.add_resource(FileResource(uri=f"note://{title}", name=title, path=path, mime_type="text/markdown"))
   return "file is saved successfully"
+
+@server.tool()
+def search_notes(query:str) -> list[str] :
+  """Find notes whose title or text contains the query (ignores upper/lower case). Returns matching note titles."""
+  query = query.lower()
+  matches = []
+  for path in NOTES_DIR.glob("*.md"):
+    title = path.stem
+    text = path.read_text()
+
+    if query in title.lower() or query in text.lower():
+      matches.append(title)
+  return matches
 
 @server.resource("note://{title}")
 def read_note(title: str) -> str:

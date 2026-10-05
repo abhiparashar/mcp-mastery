@@ -1,7 +1,7 @@
 from mcp.server.mcpserver import MCPServer
 from pathlib import Path
 from mcp.server.mcpserver.resources import FileResource
-from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.mcpserver.exceptions import ResourceNotFoundError, ToolError
 
 server = MCPServer(name="notes-server")
 
@@ -33,10 +33,13 @@ def search_notes(query:str) -> list[str] :
       matches.append(title)
   return matches
 
-@server.resource("note://{title}")
+@server.resource("note://{title}", mime_type="text/markdown")
 def read_note(title: str) -> str:
   """Read one note by its title."""
-  return (NOTES_DIR / f"{title}.md").read_text()
+  path = NOTES_DIR / f"{title}.md"
+  if not path.exists():
+    raise ResourceNotFoundError(f'No note called "{title}". Use search_notes to find titles.')
+  return path.read_text()
 
 
 if __name__ == "__main__":  

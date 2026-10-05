@@ -91,9 +91,8 @@ Captured from this server over stdio.
 | New notes did not appear until restart | The startup loop runs once | Register the note inside `create_note`, right after saving. |
 | `add_resource` placed in `search_notes` | Wrong place: it only ran when someone searched, and re-added old notes (`Resource already exists`) | Put a change where the thing changes. |
 | Auto-imports (`from operator import add`, `from sys import exception`, `import glob`) | Editor autocomplete | Press Esc when autocomplete pops up for a name you don't need to import. |
+| `note://missing` → `-32603` "Error creating resource from template" | `read_text()` crashed on a missing file, so the library reported an internal error | Check `path.exists()` and raise `ResourceNotFoundError`: the app gets `-32602` (the spec's "not found" code), my message, and the URI in `data`. |
 
 ## Known gaps
 
-- **Missing note → generic error.** `resources/read` on `note://missing` returns `{"code": -32603, "message": "Error creating resource from template note://missing"}`. `-32603` means "internal error"; a not-found resource should get a clearer answer.
 - **Clients are not told the list changed.** The server advertises `"listChanged": false`, so an app may keep showing the old list until it reconnects.
-- **Template says `text/plain`, listed notes say `text/markdown`** for the same files.

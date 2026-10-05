@@ -11,12 +11,25 @@ server = MCPServer(name="git-buddy")
 top = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=Path(__file__).parent, capture_output=True, text=True)
 REPO = Path(top.stdout.strip())
 
+# The most text any tool sends back, so one huge result can't flood the AI
+MAX_OUTPUT_CHARS = 10_000
+
 def run_git(args:list[str])->str:
   command = ["git"] + args
   result = subprocess.run(command, cwd=REPO, capture_output=True, text=True)
   if result.returncode !=0:
      raise ToolError(f"git failed: {result.stderr.strip()}")
-  return result.stdout
+  output = result.stdout
+  # Too long? Keep the start, and say clearly that the rest was cut
+  if len(output) > MAX_OUTPUT_CHARS:
+    output = output[:MAX_OUTPUT_CHARS] + f"\n... output cut at {MAX_OUTPUT_CHARS} characters"
+  return output
+
+# git succeeds with no output when a path matches nothing, so turn that silent "" into a clear error
+def require_commits(output: str, path: str) -> str:
+  if output == "":
+    raise ToolError(f'No commits found for "{path}". Check the spelling, and that the path starts from the repo top folder, e.g. mcp-projects/t02-notes-server/server.py.')
+  return output
 
 @server.tool()
 def recent_commits(count: Annotated[int, Field(ge=1, le=50, description="How many commits to show")] = 10) -> str:
@@ -29,7 +42,8 @@ def file_history(
     count:Annotated[int, Field(ge=1, le=50, description="How many commits to show")] = 10,
 )->str:
     """List the commits that changed one file, newest first: short hash, date, author, and message."""
-    return run_git(["log", f"-{count}", "--pretty=format:%h %ad %an %s", "--date=short", "--", path])
+    output = run_git(["log", f"-{count}", "--pretty=format:%h %ad %an %s", "--date=short", "--", path])
+    return require_commits(output, path)
 
 @server.tool()
 def diff_summary(commit : Annotated[str, Field(description="Commit hash, e.g. 2424e6b")]) -> str:
@@ -42,7 +56,8 @@ def who_touched(
   path: Annotated[str, Field(description="File path from the repo's top folder, e.g. mcp-projects/t02-notes-server/server.py")]
 )->str:
     """List who changed one file and how many commits each person made, most active first."""
-    return run_git(["shortlog", "-sn", "HEAD", "--", path])
+    output = run_git(["shortlog", "-sn", "HEAD", "--", path])
+    return require_commits(output, path)
     
 
 if __name__ == "__main__":

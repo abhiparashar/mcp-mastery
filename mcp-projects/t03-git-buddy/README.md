@@ -11,7 +11,7 @@ A read-only MCP server over a local git repo. Its tools run `git` and hand the o
 | `diff_summary(commit)` | `git show --stat --end-of-options <commit>` | What did this commit change: message, files, line counts? |
 | `who_touched(path)` | `git shortlog -sn HEAD -- <path>` | Who changed this file, and how often? |
 
-`count` is limited to 1–50, so a tool never dumps thousands of commits. `diff_summary` returns a summary (`--stat`), not the full diff, for the same reason.
+`count` is limited to 1–50, so a tool never dumps thousands of commits. `diff_summary` returns a summary (`--stat`), not the full diff, for the same reason. On top of that, `run_git` caps every result at 10,000 characters and ends a cut result with `... output cut at 10000 characters`, so even a commit touching thousands of files can't flood the AI.
 
 Git runs from the repo's top folder (`git rev-parse --show-toplevel`), so paths are written from there, e.g. `mcp-projects/t02-notes-server/server.py`.
 
@@ -91,6 +91,8 @@ A `ToolError` (or a failed input check) is a tool error, so the AI sees it and c
 | `who_touched` missing; log said `Tool already exists: diff_summary` | Second function had the same name | Every tool needs its own name. |
 | `diff_summary("--output=/tmp/t3_pwned.txt")` **created that file** | Git reads anything starting with `--` as an option. A list stops the *shell*, not git's own option parsing. | Put `--end-of-options` (or `--` for paths) before any value from the AI. |
 | Claude answered without my tools ("Ran 1 shell command") | Claude Code has its own terminal tool | The model chooses. In apps without a terminal, these tools are the only way in. |
+| `file_history("does/not/exist.py")` returned `""` with `isError: false` | Git succeeds with no output when a path matches nothing | Turn a silent empty result into a `ToolError` that says how to fix the path: `No commits found for "does/not/exist.py". Check the spelling, and that the path starts from the repo top folder ...` |
+| A commit touching thousands of files would return all of them | `--stat` lists every file | Cap output in one place (`run_git`) and say clearly when it was cut. |
 
 ## Rules I follow with `subprocess`
 
@@ -98,7 +100,3 @@ A `ToolError` (or a failed input check) is a tool error, so the AI sees it and c
 - Put `--end-of-options` or `--` before any value that came from the AI.
 - `git shortlog` needs `HEAD`; without it, git waits for typed input and the tool hangs.
 
-## Known gaps
-
-- **Wrong path → empty result.** `file_history("does/not/exist.py")` returns `""` with `isError: false`. The AI can't tell "no commits" from "no such file".
-- **Big commits → big output.** `--stat` lists every file, so a commit touching thousands of files returns all of them.

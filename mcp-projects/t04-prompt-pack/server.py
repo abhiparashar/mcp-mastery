@@ -1,6 +1,9 @@
 from mcp.server.mcpserver import MCPServer
+from mcp.types import Completion
 
 server = MCPServer(name="prompt-pack")
+
+LANGUAGES = ["python", "javascript", "typescript", "java", "go", "rust"]
 
 @server.prompt()
 def review_code(code:str)->str:
@@ -16,6 +19,21 @@ def commit_message(message:str) ->str:
 def explain_error(error:str,language: str) ->str:
   """Explain an error message in simple words, and how to fix it."""
   return f"Explain this {language} error in simple words. Say what caused it, then how to fix it.\n\n{error}"
+
+@server.completion()
+async def suggest(ref, argument, context):
+  if argument.name != 'language':
+    return None
+
+  typed = argument.value.lower()
+  matches = []
+
+  for language in LANGUAGES:
+    if language.startswith(typed):
+      matches.append(language)
+
+  return Completion(values=matches)
+
 
 if __name__ == "__main__":
   server.run()

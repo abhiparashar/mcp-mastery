@@ -1,5 +1,6 @@
 import html
 import re
+import sys
 import httpx
 from typing import Annotated
 from pydantic import Field
@@ -100,5 +101,8 @@ def story_details(
 
 
 if __name__ == "__main__":
-  server.run()
+  if "--http" in  sys.argv:
+    server.run(transport="streamable-http", port=8765)
+  else:
+    server.run()
 
